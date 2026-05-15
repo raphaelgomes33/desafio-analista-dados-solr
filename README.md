@@ -10,10 +10,32 @@
 
 # Como executar o projeto
 
+## Execução Rápida
+
+1. Certifique-se de que o Docker Desktop e o Power BI Desktop estejam instalados.
+2. Execute:
+
+```bash
+run.bat
+
+3. Se estiver em ambiente linux/mac será necessario abrir o terminal e digitar ou colar:
+
+chmod +x run.sh
+./run.sh
+```
+
+
+## Execução Manual
+
 Clone o repositório:
 
 ```bash
-git clone <repositorio>
+git clone git@github.com:raphaelgomes33/desafio-analista-dados-solr.git (Via ssh)
+```
+ou 
+
+```bash
+git clone https://github.com/raphaelgomes33/desafio-analista-dados-solr.git (via https)
 ```
 
 Suba os containers:
@@ -153,20 +175,6 @@ Os logs da execução são gerados em:
 - O script de importação realiza limpeza e normalização dos dados antes da inserção no Apache Solr.
 
 ---
-
-## Execução rápida
-
-1. Certifique-se de que o Docker Desktop e o Power BI Desktop estejam instalados.
-2. Execute:
-
-```bash
-run.bat
-
-3. Se estiver em ambiente linux/mac será necessario abrir o terminal e digitar ou colar:
-
-chmod +x run.sh
-./run.sh
-```
 
 ## Autor
 
