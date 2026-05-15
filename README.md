@@ -12,6 +12,8 @@ Pipeline completo de ingestão de dados CSV no Apache Solr com dashboard analít
 - [Parte 2 — Importação para o Solr](#parte-2--importação-para-o-solr)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Configuração](#configuração)
+- [Funcionalidades implementadas](#funcionalidades-implementadas)
+- [Observações](#observações)
 
 ---
 
@@ -37,7 +39,8 @@ run.bat
 chmod +x run.sh && ./run.sh
 ```
 
-Os scripts sobem todos os containers (MySQL + Solr) e executam automaticamente a importação do CSV para o Solr.
+Os scripts sobem todos os containers (MySQL + Solr) e executam automaticamente a importação do CSV para o Solr 
+e abrem o PowerBI com o Dashboard.
 
 ### Execução manual
 
@@ -79,91 +82,58 @@ python app.py
 
 ## Parte 1 — Dashboard Power BI
 
-O dashboard foi desenvolvido com foco em análise acadêmica e demográfica, conectando-se diretamente ao banco MySQL provisionado pelo Docker.
+O dashboard foi desenvolvido utilizando Power BI com foco em análise acadêmica e demográfica dos alunos.
 
-### Páginas do dashboard
+Estrutura do Dashboard
 
-**1. Demografia dos Alunos**
-- Distribuição por gênero (gráfico de pizza)
-- Distribuição por bairro (gráfico de barras)
-- Distribuição de idade (gráfico de barras empilhadas)
-- Filtros interativos por gênero e bairro
+O dashboard foi dividido em 3 páginas:
 
-**2. Desempenho Acadêmico**
-- Média de notas por semestre (gráfico de linhas/barras)
-- KPIs de desempenho geral
-- Tabela dinâmica com alunos e médias individuais
-- Filtros interativos por semestre, gênero e bairro
+# 1. Demografia dos Alunos
+Distribuição por gênero
+Distribuição por bairro
+Distribuição de idade
+Filtros interativos
 
-**3. Matérias e Professores**
-- Média de notas por matéria
-- Informações sobre professores responsáveis
-- Tabela com matérias e descrições
+# 2. Desempenho Acadêmico
+Média de notas por semestre
+KPIs de desempenho
+Tabela dinâmica com alunos e médias
+Filtros interativos
 
-### Recursos utilizados
-- Medidas calculadas com DAX
-- Relacionamentos entre as tabelas Alunos, Matérias e Notas
-- Hierarquias para análise temporal
-- Navegação entre páginas e interatividade entre visuais
+# 3. Matérias e Professores
+Média por matéria
+Informações sobre professores
+KPIs
+Tabela com matérias e descrição
+Recursos utilizados
+Medidas DAX
+Relacionamentos entre tabelas
+Navegação entre páginas
+Interatividade entre visuais
+Filtros dinâmicos
+Arquivo Power BI
 
-O arquivo `.pbix` está disponível em `powerbi/dashboard_academico.pbix`.
+O arquivo .pbix está disponível na pasta:
 
----
+/powerbi
 
-## Parte 2 — Importação para o Solr
 
-Script Python modular que lê o CSV de alunos, trata inconsistências e insere os documentos no Apache Solr em lotes.
+## Parte 2 - Importação de Dados para o Solr
 
-### Tratamento de dados
+Foi desenvolvido um script em Python responsável por:
 
-O script lida com situações não ideais comuns em conjuntos de dados reais:
+Ler o arquivo CSV
+Tratar inconsistências
+Normalizar colunas
+Formatar dados
+Inserir documentos no Apache Solr
 
-| Situação | Tratamento |
-|---|---|
-| Campos em branco ou nulos | Removidos do documento (valor `None`) |
-| Espaços extras em texto | Normalizados com `re.sub` |
-| Datas em múltiplos formatos (`dd/mm/yyyy`, `yyyy-mm-dd`, etc.) | Convertidas para o padrão ISO 8601 do Solr (`yyyy-MM-ddTHH:mm:ssZ`) |
-| Valores numéricos com vírgula decimal | Convertidos para `float` com tratamento de erro |
-| Nomes de colunas com acentos ou espaços | Normalizados para `snake_case` sem acentos |
-| Erros em lotes de inserção | Capturados por `try/except` sem interromper os demais lotes |
-| Erros inesperados na execução | Capturados no `main()` com stack trace registrado em log |
+# Tecnologias utilizadas
+pandas
+pysolr
+python-dotenv
 
-### Logs
-
-Toda a execução é registrada em `logs/importar_solr.log`:
-
-```
-INFO  - Iniciando processo de importação para o Solr.
-INFO  - Conectando ao Solr: http://localhost:8983/solr/alunos
-INFO  - Inseridos 50/200 documentos.
-INFO  - Inseridos 100/200 documentos.
-...
-INFO  - Importação concluída. Inseridos: 200. Falhas: 0. Total: 200.
-```
-
-### Verificando os dados no Solr
-
-Interface administrativa:
-```
-http://localhost:8983/solr
-```
-
-Consultar todos os documentos importados:
-```
-http://localhost:8983/solr/alunos/select?q=*:*&indent=true
-```
-
-### Tecnologias utilizadas
-
-| Biblioteca | Uso |
-|---|---|
-| `pandas` | Leitura e processamento do CSV |
-| `pysolr` | Integração com o Apache Solr |
-| `python-dotenv` | Gerenciamento de variáveis de ambiente |
-
----
-
-## Estrutura do Projeto
+# Estrutura do Projeto
 
 ```
 desafio-analista-dados-solr/
@@ -176,12 +146,13 @@ desafio-analista-dados-solr/
 ├── run.bat                 # Script de execução (Windows)
 ├── run.sh                  # Script de execução (Linux/macOS)
 ├── .env.example            # Exemplo de configuração
+├── .env                    # Arquivo de configuração
 │
 ├── logs/
 │   └── importar_solr.log   # Log de execução
 │
 ├── powerbi/
-│   └── dashboard_academico.pbix
+│   └── dashboard_academico.pbix # Dashboard PowerBi
 │
 └── src/
     ├── config.py           # Carregamento de variáveis de ambiente
@@ -197,25 +168,32 @@ desafio-analista-dados-solr/
 Copie `.env.example` para `.env` e ajuste conforme necessário:
 
 ```env
-SOLR_URL=http://localhost:8983/solr/alunos
-CSV_PATH=aluno.csv
-BATCH_SIZE=50
-LOG_FILE=logs/importar_solr.log
-```
-
-| Variável | Descrição |
-|---|---|
-| `SOLR_URL` | URL do core no Solr |
-| `CSV_PATH` | Caminho para o arquivo CSV |
-| `BATCH_SIZE` | Quantidade de documentos por lote de inserção |
-| `LOG_FILE` | Caminho do arquivo de log |
+SOLR_URL=http://localhost:8983/solr/alunos    #URL do core no Solr 
+CSV_PATH=aluno.csv                            #Caminho para o arquivo CSV
+BATCH_SIZE=50                                 #Quantidade de documentos por lote de inserção
+LOG_FILE=logs/importar_solr.log               #Caminho do arquivo de log
 
 
-para mostrar 100% com indentação
+Solr
+
+# A interface administrativa do Solr pode ser acessada em:
+
+http://localhost:8983/solr
+
+# O core utilizado para importação é:
+
+http://localhost:8983/solr/alunos
+
+# ou com indentação (obs: mostra somente os 10 primeiros registros):
+
+http://localhost:8983/solr/alunos/select?q=*:*&indent=true
+
+# para mostrar 100% com indentação:
 
 http://localhost:8983/solr/alunos/select?q=*:*&rows=100&indent=true
+```
 
-# Funcionalidades implementadas
+## Funcionalidades implementadas
 Tratamento de encoding UTF-8 e latin-1
 Normalização de colunas
 Conversão de datas
@@ -229,7 +207,6 @@ Logs
 Os logs da execução são gerados em:
 
 /logs/importar_solr.log
-
 
 
 ## Observações
