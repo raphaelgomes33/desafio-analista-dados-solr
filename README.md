@@ -1,152 +1,214 @@
-# Desafio Técnico - Analista de Dados e Importação para o Solr
+# Desafio Técnico — Analista de Dados e Importação para o Solr
+
+Pipeline completo de ingestão de dados CSV no Apache Solr com dashboard analítico em Power BI.
+
+---
+
+## Sumário
+
+- [Requisitos](#requisitos)
+- [Como executar](#como-executar)
+- [Parte 1 — Dashboard Power BI](#parte-1--dashboard-power-bi)
+- [Parte 2 — Importação para o Solr](#parte-2--importação-para-o-solr)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Configuração](#configuração)
+
+---
 
 ## Requisitos
 
-- Docker Desktop
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Python 3.10+
 - Power BI Desktop
 
 ---
 
-# Como executar o projeto
+## Como executar
 
-## Execução Rápida
+### Execução rápida
 
-1. Certifique-se de que o Docker Desktop e o Power BI Desktop estejam instalados.
-2. Execute:
-
+**Windows:**
 ```bash
 run.bat
 ```
 
-3. Se estiver em ambiente linux/mac será necessario abrir o terminal e digitar ou colar:
-
+**Linux / macOS:**
 ```bash
-chmod +x run.sh
-./run.sh
+chmod +x run.sh && ./run.sh
 ```
 
+Os scripts sobem todos os containers (MySQL + Solr) e executam automaticamente a importação do CSV para o Solr.
 
-## Execução Manual
+### Execução manual
 
 Clone o repositório:
 
 ```bash
-git clone git@github.com:raphaelgomes33/desafio-analista-dados-solr.git (Via ssh)
-```
-ou 
+# SSH
+git clone git@github.com:raphaelgomes33/desafio-analista-dados-solr.git
 
-```bash
-git clone https://github.com/raphaelgomes33/desafio-analista-dados-solr.git (via https)
+# HTTPS
+git clone https://github.com/raphaelgomes33/desafio-analista-dados-solr.git
 ```
 
 Suba os containers:
 
+```bash
 docker-compose up
+```
 
+Instale as dependências Python:
 
-## Parte 1 - Dashboard Power BI
+```bash
+pip install -r requirements.txt
+```
 
-O dashboard foi desenvolvido utilizando Power BI com foco em análise acadêmica e demográfica dos alunos.
+Configure o ambiente copiando o arquivo de exemplo:
 
-Estrutura do Dashboard
+```bash
+cp .env.example .env
+```
 
-O dashboard foi dividido em 3 páginas:
+Execute o script de importação:
 
-# 1. Demografia dos Alunos
-Distribuição por gênero
-Distribuição por bairro
-Distribuição de idade
-Filtros interativos
+```bash
+python app.py
+```
 
-# 2. Desempenho Acadêmico
-Média de notas por semestre
-KPIs de desempenho
-Tabela dinâmica com alunos e médias
-Filtros interativos
+---
 
-# 3. Matérias e Professores
-Média por matéria
-Informações sobre professores
-KPIs
-Tabela com matérias e descrição
-Recursos utilizados
-Medidas DAX
-Relacionamentos entre tabelas
-Navegação entre páginas
-Interatividade entre visuais
-Filtros dinâmicos
-Arquivo Power BI
+## Parte 1 — Dashboard Power BI
 
-O arquivo .pbix está disponível na pasta:
+O dashboard foi desenvolvido com foco em análise acadêmica e demográfica, conectando-se diretamente ao banco MySQL provisionado pelo Docker.
 
-/powerbi
+### Páginas do dashboard
 
+**1. Demografia dos Alunos**
+- Distribuição por gênero (gráfico de pizza)
+- Distribuição por bairro (gráfico de barras)
+- Distribuição de idade (gráfico de barras empilhadas)
+- Filtros interativos por gênero e bairro
 
-## Parte 2 - Importação de Dados para o Solr
+**2. Desempenho Acadêmico**
+- Média de notas por semestre (gráfico de linhas/barras)
+- KPIs de desempenho geral
+- Tabela dinâmica com alunos e médias individuais
+- Filtros interativos por semestre, gênero e bairro
 
-Foi desenvolvido um script em Python responsável por:
+**3. Matérias e Professores**
+- Média de notas por matéria
+- Informações sobre professores responsáveis
+- Tabela com matérias e descrições
 
-Ler o arquivo CSV
-Tratar inconsistências
-Normalizar colunas
-Formatar dados
-Inserir documentos no Apache Solr
+### Recursos utilizados
+- Medidas calculadas com DAX
+- Relacionamentos entre as tabelas Alunos, Matérias e Notas
+- Hierarquias para análise temporal
+- Navegação entre páginas e interatividade entre visuais
 
-# Tecnologias utilizadas
-pandas
-pysolr
-python-dotenv
+O arquivo `.pbix` está disponível em `powerbi/dashboard_academico.pbix`.
 
-# Estrutura do Projeto
+---
 
-project/
+## Parte 2 — Importação para o Solr
+
+Script Python modular que lê o CSV de alunos, trata inconsistências e insere os documentos no Apache Solr em lotes.
+
+### Tratamento de dados
+
+O script lida com situações não ideais comuns em conjuntos de dados reais:
+
+| Situação | Tratamento |
+|---|---|
+| Campos em branco ou nulos | Removidos do documento (valor `None`) |
+| Espaços extras em texto | Normalizados com `re.sub` |
+| Datas em múltiplos formatos (`dd/mm/yyyy`, `yyyy-mm-dd`, etc.) | Convertidas para o padrão ISO 8601 do Solr (`yyyy-MM-ddTHH:mm:ssZ`) |
+| Valores numéricos com vírgula decimal | Convertidos para `float` com tratamento de erro |
+| Nomes de colunas com acentos ou espaços | Normalizados para `snake_case` sem acentos |
+| Erros em lotes de inserção | Capturados por `try/except` sem interromper os demais lotes |
+| Erros inesperados na execução | Capturados no `main()` com stack trace registrado em log |
+
+### Logs
+
+Toda a execução é registrada em `logs/importar_solr.log`:
+
+```
+INFO  - Iniciando processo de importação para o Solr.
+INFO  - Conectando ao Solr: http://localhost:8983/solr/alunos
+INFO  - Inseridos 50/200 documentos.
+INFO  - Inseridos 100/200 documentos.
+...
+INFO  - Importação concluída. Inseridos: 200. Falhas: 0. Total: 200.
+```
+
+### Verificando os dados no Solr
+
+Interface administrativa:
+```
+http://localhost:8983/solr
+```
+
+Consultar todos os documentos importados:
+```
+http://localhost:8983/solr/alunos/select?q=*:*&indent=true
+```
+
+### Tecnologias utilizadas
+
+| Biblioteca | Uso |
+|---|---|
+| `pandas` | Leitura e processamento do CSV |
+| `pysolr` | Integração com o Apache Solr |
+| `python-dotenv` | Gerenciamento de variáveis de ambiente |
+
+---
+
+## Estrutura do Projeto
+
+```
+desafio-analista-dados-solr/
 │
-├── app.py
-├── requirements.txt
-├── .env
+├── app.py                  # Ponto de entrada do script
+├── aluno.csv               # Arquivo CSV de entrada
+├── docker-compose.yml      # MySQL + Solr
+├── init.sql                # Schema e dados iniciais do MySQL
+├── requirements.txt        # Dependências Python
+├── run.bat                 # Script de execução (Windows)
+├── run.sh                  # Script de execução (Linux/macOS)
+├── .env.example            # Exemplo de configuração
 │
 ├── logs/
-│   └── importar_solr.log
+│   └── importar_solr.log   # Log de execução
 │
 ├── powerbi/
 │   └── dashboard_academico.pbix
 │
 └── src/
-    ├── config.py
-    ├── logger.py
-    ├── csv_processor.py
-    └── solr_service.py
+    ├── config.py           # Carregamento de variáveis de ambiente
+    ├── logger.py           # Configuração de logging
+    ├── csv_processor.py    # Leitura e tratamento do CSV
+    └── solr_service.py     # Conexão e inserção no Solr
+```
 
-# Instalação das dependências
-pip install -r requirements.txt
+---
 
-# Executando o script
-python app.py
-Configuração
+## Configuração
 
-As configurações da aplicação estão no arquivo .env.
+Copie `.env.example` para `.env` e ajuste conforme necessário:
 
-Exemplo:
-
-SOLR_URL=http://localhost:8983/solr/alunos/
+```env
+SOLR_URL=http://localhost:8983/solr/alunos
 CSV_PATH=aluno.csv
 BATCH_SIZE=50
 LOG_FILE=logs/importar_solr.log
+```
 
-Solr
-
-A interface administrativa do Solr pode ser acessada em:
-
-http://localhost:8983/solr
-
-O core utilizado para importação é:
-
-http://localhost:8983/solr/alunos
-
-ou com indentação (obs: mostra somente os 10 primeiros registros):
-
-http://localhost:8983/solr/alunos/select?q=*:*&indent=true
+| Variável | Descrição |
+|---|---|
+| `SOLR_URL` | URL do core no Solr |
+| `CSV_PATH` | Caminho para o arquivo CSV |
+| `BATCH_SIZE` | Quantidade de documentos por lote de inserção |
+| `LOG_FILE` | Caminho do arquivo de log |
 
 
 para mostrar 100% com indentação
