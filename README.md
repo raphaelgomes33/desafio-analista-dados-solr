@@ -17,9 +17,11 @@
 
 ```bash
 run.bat
+```
 
 3. Se estiver em ambiente linux/mac será necessario abrir o terminal e digitar ou colar:
 
+```bash
 chmod +x run.sh
 ./run.sh
 ```
