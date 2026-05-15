@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+
+# Dados do banco local
+db_data/
+.docker_data/
+
+# Arquivos não incluídos no repositório
+app.py
+importar_solr.py
+README_desafio1.md
+
+# Logs (manter pasta, ignorar arquivos)
+logs/*.log
