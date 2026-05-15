@@ -157,12 +157,13 @@ http://localhost:8983/solr
 Consultar todos os documentos importados:
 ```
 http://localhost:8983/solr/alunos/select?q=*:*&indent=true
+```
 
 
 Exibir 100% dos documentos::
-
-http://localhost:8983/solr/alunos/select?q=*:*&rows=100&indent=true
 ```
+http://localhost:8983/solr/alunos/select?q=*:*&rows=100&indent=true
+``` 
 
 ### Tecnologias utilizadas
 
